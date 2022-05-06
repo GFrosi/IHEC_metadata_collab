@@ -22,7 +22,6 @@ def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
     files). Return a df including the description
     NCI terms columns."""
 
-
     dict_terms_nci = create_ncit_obo_dict(ncit_obo)
     dict_dat = create_dict_dat(ncit_dat)
 
