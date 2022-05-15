@@ -4,24 +4,63 @@ import sys
 from pronto import Ontology
    
 
-def create_agreement_cols(df_to_work):
+def create_agreement_cols(df_to_work_filled_merge):
     """Receives a df and save a new one as
     a csv file including the Diff columns
     (agree/disagree with ontology description)"""
 
-    df_to_work['Diff_health'] = np.where(df_to_work['donor_health_status'] == df_to_work['Descrip_onto_health_status'] , 'agree', 'disagree')
-    df_to_work['Diff_health_merge'] = np.where(df_to_work['donor_health_status_merge'] == df_to_work['Descrip_onto_health_status'] , 'agree', 'disagree')
-    df_to_work['Diff_disease'] = np.where(df_to_work['disease'] == df_to_work['Descrip_onto_disease'] , 'agree', 'disagree')
+    df_to_work_filled_merge['Diff_health'] = np.where(df_to_work_filled_merge['donor_health_status'] == df_to_work_filled_merge['Descrip_onto_health_status'] , 'agree', 'disagree')
+    df_to_work_filled_merge['Diff_health_merge'] = np.where(df_to_work_filled_merge['donor_health_status_merge'] == df_to_work_filled_merge['Descrip_onto_health_status'] , 'agree', 'disagree')
+    df_to_work_filled_merge['Diff_disease'] = np.where(df_to_work_filled_merge['disease'] == df_to_work_filled_merge['Descrip_onto_disease'] , 'agree', 'disagree')
     
-    df_to_work.to_csv('IHEC_diff_onto_disease_health_ncitowl_1.csv', index=False) #saving file to explore
+   #reorder columns
+    cols = ['EpiRR', 'EpiRR_status', 'age', 'biomaterial_type', 'cell_type',
+       'disease_ontology_term', 'donor_age_unit',
+       'donor_id', 'donor_life_stage', 'health_state', 'line', 'markers',
+       'project', 'sample_ontology_term', 'sex', 'taxon_id', 'tissue_type',
+       'donor_health_status_merge', 'donor_health_status', 'Descrip_onto_health_status', 
+       'Diff_health', 'Diff_health_merge', 'donor_health_status_ontology_uri', 
+       'donor_health_status_ontology_curie','disease', 'Descrip_onto_disease', 'Diff_disease',
+       'disease_ontology_uri', 'disease_ontology_curie', 'Descrip_all_terms']
+    
+    df_to_work_filled_merge = df_to_work_filled_merge[cols]
+    df_to_work_filled_merge.to_csv('IHEC_diff_onto_disease_health_ncitowl_2.csv', index=False) #saving file to explore
 
 
+def fill_health_disease(epirr_amed_113,df_to_work):
+
+    df_to_work_filled_merge = fill_amed_crest_merge(epirr_amed_113, df_to_work)
+
+    #Fill na disease cells with descrp_disease
+    df_to_work_filled_merge['disease'] = np.where((pd.isna(df_to_work_filled_merge['disease']) & pd.notna(df_to_work_filled_merge['Descrip_onto_disease'])), df_to_work_filled_merge['Descrip_onto_disease'], df_to_work_filled_merge['disease'])
+    #Fill na heath status cells with descrp_health
+    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & pd.notna(df_to_work_filled_merge['Descrip_onto_health_status'])), df_to_work_filled_merge['Descrip_onto_health_status'], df_to_work_filled_merge['donor_health_status'])
+    #Fill na health status cells with descrp_all when disease is na
+    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & pd.notna(df_to_work_filled_merge['disease'])), df_to_work_filled_merge['Descrip_all_terms'], df_to_work_filled_merge['donor_health_status'])
+    
+    return df_to_work_filled_merge
+
+
+def fill_amed_crest_merge(epirr_amed_113, df_to_work):
+
+    #whole dict 
+    dict_merge = dict(zip(df_to_work['EpiRR'], df_to_work['donor_health_status_merge']))
+    #list to filter dict (113 - AMED-CREST)
+    list_to_dict = [line.strip() for line in epirr_amed_113]
+    #filtering dict merge to map health column with new info
+    dict_to_map = {my_key:dict_merge[my_key] for my_key in list_to_dict}
+    #map dict
+    df_to_work['donor_health_status'] = df_to_work['EpiRR'].map(dict_to_map)
+
+    return df_to_work
+    
+ 
 def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
     """Receives a df with the desired columns
     and two dictionaries (from .obo and .dat
     files). Return a df including the description
     NCI terms columns."""
-
+    
     dict_terms_nci = create_ncit_obo_dict(ncit_obo)
     dict_dat = create_dict_dat(ncit_dat)
 
@@ -29,8 +68,10 @@ def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
     dis_ont = df_to_work['disease_ontology_term'].str.split(':').str[-1].tolist() #problem merged ::
     #list ontologies in disease_ontology_uri
     dis_ont_uri = df_to_work['disease_ontology_uri'].str.split('code=').str[-1].str.split('&').str[0].to_list()
+    df_to_work['disease_ontology_uri'] = dis_ont_uri #reassigning values
     #list ontologies in donor_health_status_uri 
     dhealth_ont_uri = df_to_work['donor_health_status_ontology_uri'].str.split('code=').str[-1].str.split('&').str[0].tolist()
+    df_to_work['donor_health_status_ontology_uri'] = dhealth_ont_uri
 
     #list to be columns
     health_ont_desc = []
@@ -106,7 +147,7 @@ def get_desired_cols(df_raw): #original version
     columns"""
 
     return df_raw[['EpiRR','donor_health_status','disease','donor_health_status_ontology_curie',
-    'donor_health_status_ontology_uri','disease_ontology','disease_ontology_curie','disease ontology uri',
+    'donor_health_status_ontology_uri','disease_ontology_curie',
     'disease_ontology_uri']]
 
 
@@ -154,10 +195,13 @@ def main():
     ncit_dat = open(sys.argv[1], 'r') #file .dat downloaded from ftp server (NCI)
     df_raw = pd.read_csv(sys.argv[2]) #version 1 (EpiRR updated - no merged columns)
     df_v7 = pd.read_csv(sys.argv[3]) #version 7 (last version)
+    epirr_amed_113 = open(sys.argv[4],'r')
     df_to_work = merge_col_ori_version(df_raw,df_v7)
-    df_final = map_term_ncit(df_to_work, ncit_obo, ncit_dat)
+    df_to_work_1 = map_term_ncit(df_to_work, ncit_obo, ncit_dat)
+    df_to_work_filled_merge = fill_health_disease(epirr_amed_113,df_to_work_1)
+
     print('Saving df...')
-    create_agreement_cols(df_final)
+    create_agreement_cols(df_to_work_filled_merge)
     print('Finished!')
 
 
