@@ -28,27 +28,47 @@ def create_agreement_cols(df_to_work_filled_merge):
 
 
 def fill_health_disease(epirr_amed_113,df_to_work):
+    """Receives a list of EpiRR and a df with 
+    health and health merge column. Returns a df
+    """
 
     df_to_work_filled_merge = fill_amed_crest_merge(epirr_amed_113, df_to_work)
 
     #Fill na disease cells with descrp_disease
-    df_to_work_filled_merge['disease'] = np.where((pd.isna(df_to_work_filled_merge['disease']) & pd.notna(df_to_work_filled_merge['Descrip_onto_disease'])), df_to_work_filled_merge['Descrip_onto_disease'], df_to_work_filled_merge['disease'])
+    df_to_work_filled_merge['disease'] = np.where((pd.isna(df_to_work_filled_merge['disease']) & \
+        pd.notna(df_to_work_filled_merge['Descrip_onto_disease'])), 
+        df_to_work_filled_merge['Descrip_onto_disease'], 
+        df_to_work_filled_merge['disease'])
+
     #Fill na heath status cells with descrp_health
-    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & pd.notna(df_to_work_filled_merge['Descrip_onto_health_status'])), df_to_work_filled_merge['Descrip_onto_health_status'], df_to_work_filled_merge['donor_health_status'])
-    #Fill na health status cells with descrp_all when disease is na
-    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & pd.notna(df_to_work_filled_merge['disease'])), df_to_work_filled_merge['Descrip_all_terms'], df_to_work_filled_merge['donor_health_status'])
+    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & \
+        pd.notna(df_to_work_filled_merge['Descrip_onto_health_status'])), 
+        df_to_work_filled_merge['Descrip_onto_health_status'], 
+        df_to_work_filled_merge['donor_health_status'])
+
+    #Fill na health status cells with descrp_all when disease is not na
+    df_to_work_filled_merge['donor_health_status'] = np.where((pd.isna(df_to_work_filled_merge['donor_health_status']) & \
+        pd.notna(df_to_work_filled_merge['disease'])), 
+        df_to_work_filled_merge['Descrip_all_terms'], 
+        df_to_work_filled_merge['donor_health_status'])
     
     return df_to_work_filled_merge
 
 
 def fill_amed_crest_merge(epirr_amed_113, df_to_work):
+    """Receives a list of EpiRR and a df with 
+    health and health merge column. Returns a df
+    """
 
     #whole dict 
     dict_merge = dict(zip(df_to_work['EpiRR'], df_to_work['donor_health_status_merge']))
+
     #list to filter dict (113 - AMED-CREST)
     list_to_dict = [line.strip() for line in epirr_amed_113]
+
     #filtering dict merge to map health column with new info
     dict_to_map = {my_key:dict_merge[my_key] for my_key in list_to_dict}
+
     #map dict
     df_to_work['donor_health_status'] = df_to_work['EpiRR'].map(dict_to_map)
 
@@ -66,9 +86,11 @@ def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
 
     #list ontologies in disease_ontology_term merged
     dis_ont = df_to_work['disease_ontology_term'].str.split(':').str[-1].tolist() #problem merged ::
+
     #list ontologies in disease_ontology_uri
     dis_ont_uri = df_to_work['disease_ontology_uri'].str.split('code=').str[-1].str.split('&').str[0].to_list()
     df_to_work['disease_ontology_uri'] = dis_ont_uri #reassigning values
+    
     #list ontologies in donor_health_status_uri 
     dhealth_ont_uri = df_to_work['donor_health_status_ontology_uri'].str.split('code=').str[-1].str.split('&').str[0].tolist()
     df_to_work['donor_health_status_ontology_uri'] = dhealth_ont_uri
@@ -104,7 +126,7 @@ def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
     return df_to_work
 
 
-def create_description_col(list_ont, list_desired_col, dict_terms_nci, dict_dat, list_to_col):
+def create_description_col(list_ont:list, list_desired_col:list, dict_terms_nci:dict, dict_dat:dict, list_to_col:list) -> list:
     """Inputs: list ont, list_desired_col, dicts
        Output: list_to_col. The two input lists have
        the terms related with disease_ont_term and health
@@ -157,11 +179,8 @@ def create_dict_dat(ncit_dat):
     values=NCIT term to map on
     obo dict)"""
 
-    dict_dat = {}
-    for line in ncit_dat:
-        dict_dat[line.strip().split('|')[1]] = line.strip().split('|')[0] #keys CUI; val NCIT term
-
-    return dict_dat
+    #keys CUI; val NCIT term
+    return {line.strip().split('|')[1] : line.strip().split('|')[0]  for line in ncit_dat}
 
 
 def create_ncit_obo_dict(ncit_obo):
@@ -169,13 +188,7 @@ def create_ncit_obo_dict(ncit_obo):
     returns a dict (Keys=terms;
     values=description_term)"""
 
-    dict_terms_nci = {}
-
-    for term in ncit_obo.terms(): #from obo file
-        if term.name:
-            dict_terms_nci[term.id.split('#')[-1]] = term.name
-
-    return dict_terms_nci
+    return {term.id.split('#')[-1] : term.name for term in ncit_obo.terms()}
 
 
 def generate_obo_file(owl_file):
