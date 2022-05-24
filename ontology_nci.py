@@ -4,7 +4,7 @@ import sys
 from pronto import Ontology
    
 
-def create_agreement_cols(df_to_work_filled_merge):
+def create_agreement_cols(df_to_work_filled_merge:pd.DataFrame) -> pd.DataFrame:
     """Receives a df and save a new one as
     a csv file including the Diff columns
     (agree/disagree with ontology description)"""
@@ -27,7 +27,7 @@ def create_agreement_cols(df_to_work_filled_merge):
     df_to_work_filled_merge.to_csv('IHEC_diff_onto_disease_health_ncitowl_2.csv', index=False) #saving file to explore
 
 
-def fill_health_disease(epirr_amed_113,df_to_work):
+def fill_health_disease(epirr_amed_113,df_to_work:pd.DataFrame) -> pd.DataFrame:
     """Receives a list of EpiRR and a df with 
     health and health merge column. Returns a df
     """
@@ -55,7 +55,7 @@ def fill_health_disease(epirr_amed_113,df_to_work):
     return df_to_work_filled_merge
 
 
-def fill_amed_crest_merge(epirr_amed_113, df_to_work):
+def fill_amed_crest_merge(epirr_amed_113, df_to_work:pd.DataFrame) -> pd.DataFrame:
     """Receives a list of EpiRR and a df with 
     health and health merge column. Returns a df
     """
@@ -75,7 +75,7 @@ def fill_amed_crest_merge(epirr_amed_113, df_to_work):
     return df_to_work
     
  
-def map_term_ncit(df_to_work, ncit_obo, ncit_dat):
+def map_term_ncit(df_to_work:pd.DataFrame, ncit_obo:dict, ncit_dat:dict) -> pd.DataFrame:
     """Receives a df with the desired columns
     and two dictionaries (from .obo and .dat
     files). Return a df including the description
@@ -151,7 +151,7 @@ def create_description_col(list_ont:list, list_desired_col:list, dict_terms_nci:
     return list_to_col
 
 
-def merge_col_ori_version(df_raw,df_v7): #ok
+def merge_col_ori_version(df_raw:pd.DataFrame, df_v7:pd.DataFrame) -> pd.DataFrame: #ok
     """Receives two dfs and returns a
     merged df (e.g IHEC metadata raw 
     and v7)"""
@@ -163,7 +163,7 @@ def merge_col_ori_version(df_raw,df_v7): #ok
     return df_to_work
 
 
-def get_desired_cols(df_raw): #original version
+def get_desired_cols(df_raw:pd.DataFrame) -> pd.DataFrame: #original version
     """Receives a df and returns
     a df with specific
     columns"""
@@ -173,7 +173,7 @@ def get_desired_cols(df_raw): #original version
     'disease_ontology_uri']]
 
 
-def create_dict_dat(ncit_dat):
+def create_dict_dat(ncit_dat) -> dict:
     """Receives a .dat files and
     returns a dict (Keys=CUI term;
     values=NCIT term to map on
@@ -183,7 +183,7 @@ def create_dict_dat(ncit_dat):
     return {line.strip().split('|')[1] : line.strip().split('|')[0]  for line in ncit_dat}
 
 
-def create_ncit_obo_dict(ncit_obo):
+def create_ncit_obo_dict(ncit_obo) -> dict:
     """Receives a .obo file and
     returns a dict (Keys=terms;
     values=description_term)"""
